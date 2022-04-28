@@ -1,0 +1,1696 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 111,
+   "id": "1f0cd977",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "library(twitteR)\n",
+    "library(ROAuth)\n",
+    "library(hms)\n",
+    "library(lubridate) \n",
+    "library(tidytext)\n",
+    "library(tm)\n",
+    "library(wordcloud)\n",
+    "library(igraph)\n",
+    "library(glue)\n",
+    "library(networkD3)\n",
+    "library(rtweet)\n",
+    "library(plyr)\n",
+    "library(stringr)\n",
+    "library(ggplot2)\n",
+    "library(ggeasy)\n",
+    "library(plotly)\n",
+    "library(dplyr)  \n",
+    "library(hms)\n",
+    "library(lubridate) \n",
+    "\n",
+    "library(tidyverse)\n",
+    "library(janeaustenr)\n",
+    "library(widyr)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 112,
+   "id": "67ef4b92",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "library(\"twitteR\")\n",
+    "library(\"openssl\")\n",
+    "library(\"httpuv\")\n",
+    "library(\"twitteR\")\n",
+    "library(\"tm\")\n",
+    "library(\"stringr\")\n",
+    "library(\"dplyr\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "101f1054",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Note: Replace below with your credentials following above reference\n",
+    "api_key <- \"m0GerwDxbH41EPrYmDMryZkAf\"\n",
+    "api_secret <- \"HajcZYGoRKVJXjqH0eJDDNr9AzhADh16mZY8YkIbRk06gr1gFu\"\n",
+    "access_token <- \"1440251710161653763-6mEnNK004dFgpGXtHjmGWdiYptlYuD\"\n",
+    "access_token_secret <- \"2X9pnWsTTcmYYdI1BXJWrCjopASqso8KHPiVMr9O8oFe0\"\n",
+    "#Note: This will ask us permission for direct authentication, type '1' for yes:\n",
+    "setup_twitter_oauth(api_key,api_secret,access_token,access_token_secret)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 114,
+   "id": "6e796a77",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# extracting 4000 tweets related to global warming topic\n",
+    "tweets <- searchTwitter(\"#globalwarming\", n=4000, lang=\"en\")\n",
+    "n.tweet <- length(tweets)\n",
+    "\n",
+    "# convert tweets to a data frame\n",
+    "tweets.df <- twListToDF(tweets)\n",
+    "\n",
+    "tweets.txt <- sapply(tweets, function(t)t$getText())\n",
+    "# Ignore graphical Parameters to avoid input errors\n",
+    "tweets.txt <- str_replace_all(tweets.txt,\"[^[:graph:]]\", \" \")\n",
+    "\n",
+    "## pre-processing text:\n",
+    "clean.text = function(x)\n",
+    "{\n",
+    "  # convert to lower case\n",
+    "  x = tolower(x)\n",
+    "  # remove rt\n",
+    "  x = gsub(\"rt\", \"\", x)\n",
+    "  # remove at\n",
+    "  x = gsub(\"@\\\\w+\", \"\", x)\n",
+    "  # remove punctuation\n",
+    "  x = gsub(\"[[:punct:]]\", \"\", x)\n",
+    "  # remove numbers\n",
+    "  x = gsub(\"[[:digit:]]\", \"\", x)\n",
+    "  # remove links http\n",
+    "  x = gsub(\"http\\\\w+\", \"\", x)\n",
+    "  # remove tabs\n",
+    "  x = gsub(\"[ |\\t]{2,}\", \"\", x)\n",
+    "  # remove blank spaces at the beginning\n",
+    "  x = gsub(\"^ \", \"\", x)\n",
+    "  # remove blank spaces at the end\n",
+    "  x = gsub(\" $\", \"\", x)\n",
+    "  # some other cleaning text\n",
+    "  x = gsub('https://','',x)\n",
+    "  x = gsub('http://','',x)\n",
+    "  x = gsub('[^[:graph:]]', ' ',x)\n",
+    "  x = gsub('[[:punct:]]', '', x)\n",
+    "  x = gsub('[[:cntrl:]]', '', x)\n",
+    "  x = gsub('\\\\d+', '', x)\n",
+    "  x = str_replace_all(x,\"[^[:graph:]]\", \" \")\n",
+    "  return(x)\n",
+    "}\n",
+    "\n",
+    "cleanText <- clean.text(tweets.txt)\n",
+    "# remove empty results (if any)\n",
+    "idx <- which(cleanText == \" \")\n",
+    "cleanText <- cleanText[cleanText != \" \"]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 115,
+   "id": "7d2b94b9",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A matrix: 0 × 17 of type chr</caption>\n",
+       "<thead>\n",
+       "\t<tr><th scope=col>Package</th><th scope=col>LibPath</th><th scope=col>Version</th><th scope=col>Priority</th><th scope=col>Depends</th><th scope=col>Imports</th><th scope=col>LinkingTo</th><th scope=col>Suggests</th><th scope=col>Enhances</th><th scope=col>License</th><th scope=col>License_is_FOSS</th><th scope=col>License_restricts_use</th><th scope=col>OS_type</th><th scope=col>Archs</th><th scope=col>MD5sum</th><th scope=col>NeedsCompilation</th><th scope=col>Built</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A matrix: 0 × 17 of type chr\n",
+       "\\begin{tabular}{lllllllllllllllll}\n",
+       " Package & LibPath & Version & Priority & Depends & Imports & LinkingTo & Suggests & Enhances & License & License\\_is\\_FOSS & License\\_restricts\\_use & OS\\_type & Archs & MD5sum & NeedsCompilation & Built\\\\\n",
+       "\\hline\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A matrix: 0 × 17 of type chr\n",
+       "\n",
+       "| Package | LibPath | Version | Priority | Depends | Imports | LinkingTo | Suggests | Enhances | License | License_is_FOSS | License_restricts_use | OS_type | Archs | MD5sum | NeedsCompilation | Built |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "\n"
+      ],
+      "text/plain": [
+       "     Package LibPath Version Priority Depends Imports LinkingTo Suggests\n",
+       "     Enhances License License_is_FOSS License_restricts_use OS_type Archs\n",
+       "     MD5sum NeedsCompilation Built"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A matrix: 0 × 17 of type chr</caption>\n",
+       "<thead>\n",
+       "\t<tr><th scope=col>Package</th><th scope=col>LibPath</th><th scope=col>Version</th><th scope=col>Priority</th><th scope=col>Depends</th><th scope=col>Imports</th><th scope=col>LinkingTo</th><th scope=col>Suggests</th><th scope=col>Enhances</th><th scope=col>License</th><th scope=col>License_is_FOSS</th><th scope=col>License_restricts_use</th><th scope=col>OS_type</th><th scope=col>Archs</th><th scope=col>MD5sum</th><th scope=col>NeedsCompilation</th><th scope=col>Built</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A matrix: 0 × 17 of type chr\n",
+       "\\begin{tabular}{lllllllllllllllll}\n",
+       " Package & LibPath & Version & Priority & Depends & Imports & LinkingTo & Suggests & Enhances & License & License\\_is\\_FOSS & License\\_restricts\\_use & OS\\_type & Archs & MD5sum & NeedsCompilation & Built\\\\\n",
+       "\\hline\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A matrix: 0 × 17 of type chr\n",
+       "\n",
+       "| Package | LibPath | Version | Priority | Depends | Imports | LinkingTo | Suggests | Enhances | License | License_is_FOSS | License_restricts_use | OS_type | Archs | MD5sum | NeedsCompilation | Built |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "\n"
+      ],
+      "text/plain": [
+       "     Package LibPath Version Priority Depends Imports LinkingTo Suggests\n",
+       "     Enhances License License_is_FOSS License_restricts_use OS_type Archs\n",
+       "     MD5sum NeedsCompilation Built"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A matrix: 0 × 17 of type chr</caption>\n",
+       "<thead>\n",
+       "\t<tr><th scope=col>Package</th><th scope=col>LibPath</th><th scope=col>Version</th><th scope=col>Priority</th><th scope=col>Depends</th><th scope=col>Imports</th><th scope=col>LinkingTo</th><th scope=col>Suggests</th><th scope=col>Enhances</th><th scope=col>License</th><th scope=col>License_is_FOSS</th><th scope=col>License_restricts_use</th><th scope=col>OS_type</th><th scope=col>Archs</th><th scope=col>MD5sum</th><th scope=col>NeedsCompilation</th><th scope=col>Built</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A matrix: 0 × 17 of type chr\n",
+       "\\begin{tabular}{lllllllllllllllll}\n",
+       " Package & LibPath & Version & Priority & Depends & Imports & LinkingTo & Suggests & Enhances & License & License\\_is\\_FOSS & License\\_restricts\\_use & OS\\_type & Archs & MD5sum & NeedsCompilation & Built\\\\\n",
+       "\\hline\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A matrix: 0 × 17 of type chr\n",
+       "\n",
+       "| Package | LibPath | Version | Priority | Depends | Imports | LinkingTo | Suggests | Enhances | License | License_is_FOSS | License_restricts_use | OS_type | Archs | MD5sum | NeedsCompilation | Built |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "\n"
+      ],
+      "text/plain": [
+       "     Package LibPath Version Priority Depends Imports LinkingTo Suggests\n",
+       "     Enhances License License_is_FOSS License_restricts_use OS_type Archs\n",
+       "     MD5sum NeedsCompilation Built"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A matrix: 0 × 17 of type chr</caption>\n",
+       "<thead>\n",
+       "\t<tr><th scope=col>Package</th><th scope=col>LibPath</th><th scope=col>Version</th><th scope=col>Priority</th><th scope=col>Depends</th><th scope=col>Imports</th><th scope=col>LinkingTo</th><th scope=col>Suggests</th><th scope=col>Enhances</th><th scope=col>License</th><th scope=col>License_is_FOSS</th><th scope=col>License_restricts_use</th><th scope=col>OS_type</th><th scope=col>Archs</th><th scope=col>MD5sum</th><th scope=col>NeedsCompilation</th><th scope=col>Built</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A matrix: 0 × 17 of type chr\n",
+       "\\begin{tabular}{lllllllllllllllll}\n",
+       " Package & LibPath & Version & Priority & Depends & Imports & LinkingTo & Suggests & Enhances & License & License\\_is\\_FOSS & License\\_restricts\\_use & OS\\_type & Archs & MD5sum & NeedsCompilation & Built\\\\\n",
+       "\\hline\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A matrix: 0 × 17 of type chr\n",
+       "\n",
+       "| Package | LibPath | Version | Priority | Depends | Imports | LinkingTo | Suggests | Enhances | License | License_is_FOSS | License_restricts_use | OS_type | Archs | MD5sum | NeedsCompilation | Built |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "\n"
+      ],
+      "text/plain": [
+       "     Package LibPath Version Priority Depends Imports LinkingTo Suggests\n",
+       "     Enhances License License_is_FOSS License_restricts_use OS_type Archs\n",
+       "     MD5sum NeedsCompilation Built"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "\n",
+    "#  Install Requried Packages\n",
+    "installed.packages(\"SnowballC\")\n",
+    "installed.packages(\"tm\")\n",
+    "installed.packages(\"twitteR\")\n",
+    "installed.packages(\"syuzhet\")\n",
+    " \n",
+    "# Load Requried Packages\n",
+    "library(\"SnowballC\")\n",
+    "library(\"tm\")\n",
+    "library(\"twitteR\")\n",
+    "library(\"syuzhet\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 117,
+   "id": "4fb208e5",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A matrix: 0 × 17 of type chr</caption>\n",
+       "<thead>\n",
+       "\t<tr><th scope=col>Package</th><th scope=col>LibPath</th><th scope=col>Version</th><th scope=col>Priority</th><th scope=col>Depends</th><th scope=col>Imports</th><th scope=col>LinkingTo</th><th scope=col>Suggests</th><th scope=col>Enhances</th><th scope=col>License</th><th scope=col>License_is_FOSS</th><th scope=col>License_restricts_use</th><th scope=col>OS_type</th><th scope=col>Archs</th><th scope=col>MD5sum</th><th scope=col>NeedsCompilation</th><th scope=col>Built</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A matrix: 0 × 17 of type chr\n",
+       "\\begin{tabular}{lllllllllllllllll}\n",
+       " Package & LibPath & Version & Priority & Depends & Imports & LinkingTo & Suggests & Enhances & License & License\\_is\\_FOSS & License\\_restricts\\_use & OS\\_type & Archs & MD5sum & NeedsCompilation & Built\\\\\n",
+       "\\hline\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A matrix: 0 × 17 of type chr\n",
+       "\n",
+       "| Package | LibPath | Version | Priority | Depends | Imports | LinkingTo | Suggests | Enhances | License | License_is_FOSS | License_restricts_use | OS_type | Archs | MD5sum | NeedsCompilation | Built |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "\n"
+      ],
+      "text/plain": [
+       "     Package LibPath Version Priority Depends Imports LinkingTo Suggests\n",
+       "     Enhances License License_is_FOSS License_restricts_use OS_type Archs\n",
+       "     MD5sum NeedsCompilation Built"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A matrix: 0 × 17 of type chr</caption>\n",
+       "<thead>\n",
+       "\t<tr><th scope=col>Package</th><th scope=col>LibPath</th><th scope=col>Version</th><th scope=col>Priority</th><th scope=col>Depends</th><th scope=col>Imports</th><th scope=col>LinkingTo</th><th scope=col>Suggests</th><th scope=col>Enhances</th><th scope=col>License</th><th scope=col>License_is_FOSS</th><th scope=col>License_restricts_use</th><th scope=col>OS_type</th><th scope=col>Archs</th><th scope=col>MD5sum</th><th scope=col>NeedsCompilation</th><th scope=col>Built</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A matrix: 0 × 17 of type chr\n",
+       "\\begin{tabular}{lllllllllllllllll}\n",
+       " Package & LibPath & Version & Priority & Depends & Imports & LinkingTo & Suggests & Enhances & License & License\\_is\\_FOSS & License\\_restricts\\_use & OS\\_type & Archs & MD5sum & NeedsCompilation & Built\\\\\n",
+       "\\hline\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A matrix: 0 × 17 of type chr\n",
+       "\n",
+       "| Package | LibPath | Version | Priority | Depends | Imports | LinkingTo | Suggests | Enhances | License | License_is_FOSS | License_restricts_use | OS_type | Archs | MD5sum | NeedsCompilation | Built |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "\n"
+      ],
+      "text/plain": [
+       "     Package LibPath Version Priority Depends Imports LinkingTo Suggests\n",
+       "     Enhances License License_is_FOSS License_restricts_use OS_type Archs\n",
+       "     MD5sum NeedsCompilation Built"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A matrix: 0 × 17 of type chr</caption>\n",
+       "<thead>\n",
+       "\t<tr><th scope=col>Package</th><th scope=col>LibPath</th><th scope=col>Version</th><th scope=col>Priority</th><th scope=col>Depends</th><th scope=col>Imports</th><th scope=col>LinkingTo</th><th scope=col>Suggests</th><th scope=col>Enhances</th><th scope=col>License</th><th scope=col>License_is_FOSS</th><th scope=col>License_restricts_use</th><th scope=col>OS_type</th><th scope=col>Archs</th><th scope=col>MD5sum</th><th scope=col>NeedsCompilation</th><th scope=col>Built</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A matrix: 0 × 17 of type chr\n",
+       "\\begin{tabular}{lllllllllllllllll}\n",
+       " Package & LibPath & Version & Priority & Depends & Imports & LinkingTo & Suggests & Enhances & License & License\\_is\\_FOSS & License\\_restricts\\_use & OS\\_type & Archs & MD5sum & NeedsCompilation & Built\\\\\n",
+       "\\hline\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A matrix: 0 × 17 of type chr\n",
+       "\n",
+       "| Package | LibPath | Version | Priority | Depends | Imports | LinkingTo | Suggests | Enhances | License | License_is_FOSS | License_restricts_use | OS_type | Archs | MD5sum | NeedsCompilation | Built |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "\n"
+      ],
+      "text/plain": [
+       "     Package LibPath Version Priority Depends Imports LinkingTo Suggests\n",
+       "     Enhances License License_is_FOSS License_restricts_use OS_type Archs\n",
+       "     MD5sum NeedsCompilation Built"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A matrix: 0 × 17 of type chr</caption>\n",
+       "<thead>\n",
+       "\t<tr><th scope=col>Package</th><th scope=col>LibPath</th><th scope=col>Version</th><th scope=col>Priority</th><th scope=col>Depends</th><th scope=col>Imports</th><th scope=col>LinkingTo</th><th scope=col>Suggests</th><th scope=col>Enhances</th><th scope=col>License</th><th scope=col>License_is_FOSS</th><th scope=col>License_restricts_use</th><th scope=col>OS_type</th><th scope=col>Archs</th><th scope=col>MD5sum</th><th scope=col>NeedsCompilation</th><th scope=col>Built</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A matrix: 0 × 17 of type chr\n",
+       "\\begin{tabular}{lllllllllllllllll}\n",
+       " Package & LibPath & Version & Priority & Depends & Imports & LinkingTo & Suggests & Enhances & License & License\\_is\\_FOSS & License\\_restricts\\_use & OS\\_type & Archs & MD5sum & NeedsCompilation & Built\\\\\n",
+       "\\hline\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A matrix: 0 × 17 of type chr\n",
+       "\n",
+       "| Package | LibPath | Version | Priority | Depends | Imports | LinkingTo | Suggests | Enhances | License | License_is_FOSS | License_restricts_use | OS_type | Archs | MD5sum | NeedsCompilation | Built |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "\n"
+      ],
+      "text/plain": [
+       "     Package LibPath Version Priority Depends Imports LinkingTo Suggests\n",
+       "     Enhances License License_is_FOSS License_restricts_use OS_type Archs\n",
+       "     MD5sum NeedsCompilation Built"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "#  Install Requried Packages\n",
+    "installed.packages(\"SnowballC\")\n",
+    "installed.packages(\"tm\")\n",
+    "installed.packages(\"twitteR\")\n",
+    "installed.packages(\"syuzhet\")\n",
+    "\n",
+    "# Load Requried Packages\n",
+    "library(\"SnowballC\")\n",
+    "library(\"tm\")\n",
+    "library(\"twitteR\")\n",
+    "library(\"syuzhet\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 118,
+   "id": "7f612b6b",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[1] \"Using direct authentication\"\n"
+     ]
+    }
+   ],
+   "source": [
+    "#Note: Replace below with your credentials following above reference\n",
+    "\n",
+    "# Authonitical keys\n",
+    "consumer_key <- \"m0GerwDxbH41EPrYmDMryZkAf\"\n",
+    "consumer_secret  <- \"HajcZYGoRKVJXjqH0eJDDNr9AzhADh16mZY8YkIbRk06gr1gFu\"\n",
+    "access_token <- \"1440251710161653763-6mEnNK004dFgpGXtHjmGWdiYptlYuD\"\n",
+    "access_secret <- \"2X9pnWsTTcmYYdI1BXJWrCjopASqso8KHPiVMr9O8oFe0\"\n",
+    "setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)\n",
+    "tweets <- userTimeline(\"narendramodi\", n=200)\n",
+    " \n",
+    "n.tweet <- length(tweets)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 119,
+   "id": "24c0f17c",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A data.frame: 6 × 16</caption>\n",
+       "<thead>\n",
+       "\t<tr><th></th><th scope=col>text</th><th scope=col>favorited</th><th scope=col>favoriteCount</th><th scope=col>replyToSN</th><th scope=col>created</th><th scope=col>truncated</th><th scope=col>replyToSID</th><th scope=col>id</th><th scope=col>replyToUID</th><th scope=col>statusSource</th><th scope=col>screenName</th><th scope=col>retweetCount</th><th scope=col>isRetweet</th><th scope=col>retweeted</th><th scope=col>longitude</th><th scope=col>latitude</th></tr>\n",
+       "\t<tr><th></th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;lgl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;dttm&gt;</th><th scope=col>&lt;lgl&gt;</th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;lgl&gt;</th><th scope=col>&lt;lgl&gt;</th><th scope=col>&lt;lgl&gt;</th><th scope=col>&lt;lgl&gt;</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "\t<tr><th scope=row>1</th><td><span style=white-space:pre-wrap>Addressing joint press meet with UK PM @BorisJohnson. https://t.co/GXPBjQN3CZ                                                               </span></td><td>FALSE</td><td> 9564</td><td>NA</td><td>2022-04-22 07:31:26</td><td>FALSE</td><td>NA</td><td>1517405703110946816</td><td>NA</td><td><span style=white-space:pre-wrap>&lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;      </span></td><td>narendramodi</td><td>2866</td><td>FALSE</td><td>FALSE</td><td>NA</td><td>NA</td></tr>\n",
+       "\t<tr><th scope=row>2</th><td>#EarthDay is about expressing gratitude to Mother Earth for her kindness and reiterating our commitment to care for… https://t.co/To6WH3QVRU</td><td>FALSE</td><td>17527</td><td>NA</td><td>2022-04-22 04:33:45</td><td> TRUE</td><td>NA</td><td>1517360987091144705</td><td>NA</td><td><span style=white-space:pre-wrap>&lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;      </span></td><td>narendramodi</td><td>4883</td><td>FALSE</td><td>FALSE</td><td>NA</td><td>NA</td></tr>\n",
+       "\t<tr><th scope=row>3</th><td>Wonderful to see you, my friend PM @BorisJohnson in India on a long-awaited visit. Look forward to our discussions… https://t.co/L9FppOuekg </td><td>FALSE</td><td>13683</td><td>NA</td><td>2022-04-22 04:31:34</td><td> TRUE</td><td>NA</td><td>1517360438631362560</td><td>NA</td><td>&lt;a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\"&gt;Twitter for iPhone&lt;/a&gt;</td><td>narendramodi</td><td>2770</td><td>FALSE</td><td>FALSE</td><td>NA</td><td>NA</td></tr>\n",
+       "\t<tr><th scope=row>4</th><td><span style=white-space:pre-wrap>ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ https://t.co/a7OzHcZKEE                                                                             </span></td><td>FALSE</td><td> 8594</td><td>NA</td><td>2022-04-22 02:44:33</td><td>FALSE</td><td>NA</td><td>1517333506242015233</td><td>NA</td><td><span style=white-space:pre-wrap>&lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;      </span></td><td>narendramodi</td><td>2250</td><td>FALSE</td><td>FALSE</td><td>NA</td><td>NA</td></tr>\n",
+       "\t<tr><th scope=row>5</th><td><span style=white-space:pre-wrap>श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… https://t.co/Sr3fU58ui7                  </span></td><td>FALSE</td><td> 7073</td><td>NA</td><td>2022-04-22 02:37:43</td><td> TRUE</td><td>NA</td><td>1517331786606735360</td><td>NA</td><td><span style=white-space:pre-wrap>&lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;      </span></td><td>narendramodi</td><td>2246</td><td>FALSE</td><td>FALSE</td><td>NA</td><td>NA</td></tr>\n",
+       "\t<tr><th scope=row>6</th><td><span style=white-space:pre-wrap>इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… https://t.co/wggOcE5fep                                </span></td><td>FALSE</td><td>11527</td><td>NA</td><td>2022-04-22 02:37:16</td><td>FALSE</td><td>NA</td><td>1517331675017265152</td><td>NA</td><td><span style=white-space:pre-wrap>&lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;      </span></td><td>narendramodi</td><td>2983</td><td>FALSE</td><td>FALSE</td><td>NA</td><td>NA</td></tr>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A data.frame: 6 × 16\n",
+       "\\begin{tabular}{r|llllllllllllllll}\n",
+       "  & text & favorited & favoriteCount & replyToSN & created & truncated & replyToSID & id & replyToUID & statusSource & screenName & retweetCount & isRetweet & retweeted & longitude & latitude\\\\\n",
+       "  & <chr> & <lgl> & <dbl> & <chr> & <dttm> & <lgl> & <chr> & <chr> & <chr> & <chr> & <chr> & <dbl> & <lgl> & <lgl> & <lgl> & <lgl>\\\\\n",
+       "\\hline\n",
+       "\t1 & Addressing joint press meet with UK PM @BorisJohnson. https://t.co/GXPBjQN3CZ                                                                & FALSE &  9564 & NA & 2022-04-22 07:31:26 & FALSE & NA & 1517405703110946816 & NA & <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>       & narendramodi & 2866 & FALSE & FALSE & NA & NA\\\\\n",
+       "\t2 & \\#EarthDay is about expressing gratitude to Mother Earth for her kindness and reiterating our commitment to care for… https://t.co/To6WH3QVRU & FALSE & 17527 & NA & 2022-04-22 04:33:45 &  TRUE & NA & 1517360987091144705 & NA & <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>       & narendramodi & 4883 & FALSE & FALSE & NA & NA\\\\\n",
+       "\t3 & Wonderful to see you, my friend PM @BorisJohnson in India on a long-awaited visit. Look forward to our discussions… https://t.co/L9FppOuekg  & FALSE & 13683 & NA & 2022-04-22 04:31:34 &  TRUE & NA & 1517360438631362560 & NA & <a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a> & narendramodi & 2770 & FALSE & FALSE & NA & NA\\\\\n",
+       "\t4 & ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ https://t.co/a7OzHcZKEE                                                                              & FALSE &  8594 & NA & 2022-04-22 02:44:33 & FALSE & NA & 1517333506242015233 & NA & <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>       & narendramodi & 2250 & FALSE & FALSE & NA & NA\\\\\n",
+       "\t5 & श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… https://t.co/Sr3fU58ui7                   & FALSE &  7073 & NA & 2022-04-22 02:37:43 &  TRUE & NA & 1517331786606735360 & NA & <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>       & narendramodi & 2246 & FALSE & FALSE & NA & NA\\\\\n",
+       "\t6 & इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… https://t.co/wggOcE5fep                                 & FALSE & 11527 & NA & 2022-04-22 02:37:16 & FALSE & NA & 1517331675017265152 & NA & <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>       & narendramodi & 2983 & FALSE & FALSE & NA & NA\\\\\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A data.frame: 6 × 16\n",
+       "\n",
+       "| <!--/--> | text &lt;chr&gt; | favorited &lt;lgl&gt; | favoriteCount &lt;dbl&gt; | replyToSN &lt;chr&gt; | created &lt;dttm&gt; | truncated &lt;lgl&gt; | replyToSID &lt;chr&gt; | id &lt;chr&gt; | replyToUID &lt;chr&gt; | statusSource &lt;chr&gt; | screenName &lt;chr&gt; | retweetCount &lt;dbl&gt; | isRetweet &lt;lgl&gt; | retweeted &lt;lgl&gt; | longitude &lt;lgl&gt; | latitude &lt;lgl&gt; |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "| 1 | Addressing joint press meet with UK PM @BorisJohnson. https://t.co/GXPBjQN3CZ                                                                | FALSE |  9564 | NA | 2022-04-22 07:31:26 | FALSE | NA | 1517405703110946816 | NA | &lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;       | narendramodi | 2866 | FALSE | FALSE | NA | NA |\n",
+       "| 2 | #EarthDay is about expressing gratitude to Mother Earth for her kindness and reiterating our commitment to care for… https://t.co/To6WH3QVRU | FALSE | 17527 | NA | 2022-04-22 04:33:45 |  TRUE | NA | 1517360987091144705 | NA | &lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;       | narendramodi | 4883 | FALSE | FALSE | NA | NA |\n",
+       "| 3 | Wonderful to see you, my friend PM @BorisJohnson in India on a long-awaited visit. Look forward to our discussions… https://t.co/L9FppOuekg  | FALSE | 13683 | NA | 2022-04-22 04:31:34 |  TRUE | NA | 1517360438631362560 | NA | &lt;a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\"&gt;Twitter for iPhone&lt;/a&gt; | narendramodi | 2770 | FALSE | FALSE | NA | NA |\n",
+       "| 4 | ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ https://t.co/a7OzHcZKEE                                                                              | FALSE |  8594 | NA | 2022-04-22 02:44:33 | FALSE | NA | 1517333506242015233 | NA | &lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;       | narendramodi | 2250 | FALSE | FALSE | NA | NA |\n",
+       "| 5 | श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… https://t.co/Sr3fU58ui7                   | FALSE |  7073 | NA | 2022-04-22 02:37:43 |  TRUE | NA | 1517331786606735360 | NA | &lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;       | narendramodi | 2246 | FALSE | FALSE | NA | NA |\n",
+       "| 6 | इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… https://t.co/wggOcE5fep                                 | FALSE | 11527 | NA | 2022-04-22 02:37:16 | FALSE | NA | 1517331675017265152 | NA | &lt;a href=\"https://studio.twitter.com\" rel=\"nofollow\"&gt;Twitter Media Studio&lt;/a&gt;       | narendramodi | 2983 | FALSE | FALSE | NA | NA |\n",
+       "\n"
+      ],
+      "text/plain": [
+       "  text                                                                                                                                        \n",
+       "1 Addressing joint press meet with UK PM @BorisJohnson. https://t.co/GXPBjQN3CZ                                                               \n",
+       "2 #EarthDay is about expressing gratitude to Mother Earth for her kindness and reiterating our commitment to care for… https://t.co/To6WH3QVRU\n",
+       "3 Wonderful to see you, my friend PM @BorisJohnson in India on a long-awaited visit. Look forward to our discussions… https://t.co/L9FppOuekg \n",
+       "4 ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ https://t.co/a7OzHcZKEE                                                                             \n",
+       "5 श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… https://t.co/Sr3fU58ui7                  \n",
+       "6 इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… https://t.co/wggOcE5fep                                \n",
+       "  favorited favoriteCount replyToSN created             truncated replyToSID\n",
+       "1 FALSE      9564         NA        2022-04-22 07:31:26 FALSE     NA        \n",
+       "2 FALSE     17527         NA        2022-04-22 04:33:45  TRUE     NA        \n",
+       "3 FALSE     13683         NA        2022-04-22 04:31:34  TRUE     NA        \n",
+       "4 FALSE      8594         NA        2022-04-22 02:44:33 FALSE     NA        \n",
+       "5 FALSE      7073         NA        2022-04-22 02:37:43  TRUE     NA        \n",
+       "6 FALSE     11527         NA        2022-04-22 02:37:16 FALSE     NA        \n",
+       "  id                  replyToUID\n",
+       "1 1517405703110946816 NA        \n",
+       "2 1517360987091144705 NA        \n",
+       "3 1517360438631362560 NA        \n",
+       "4 1517333506242015233 NA        \n",
+       "5 1517331786606735360 NA        \n",
+       "6 1517331675017265152 NA        \n",
+       "  statusSource                                                                      \n",
+       "1 <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>      \n",
+       "2 <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>      \n",
+       "3 <a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>\n",
+       "4 <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>      \n",
+       "5 <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>      \n",
+       "6 <a href=\"https://studio.twitter.com\" rel=\"nofollow\">Twitter Media Studio</a>      \n",
+       "  screenName   retweetCount isRetweet retweeted longitude latitude\n",
+       "1 narendramodi 2866         FALSE     FALSE     NA        NA      \n",
+       "2 narendramodi 4883         FALSE     FALSE     NA        NA      \n",
+       "3 narendramodi 2770         FALSE     FALSE     NA        NA      \n",
+       "4 narendramodi 2250         FALSE     FALSE     NA        NA      \n",
+       "5 narendramodi 2246         FALSE     FALSE     NA        NA      \n",
+       "6 narendramodi 2983         FALSE     FALSE     NA        NA      "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "tweets.df <- twListToDF(tweets) \n",
+    " \n",
+    "head(tweets.df)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 120,
+   "id": "d7773807",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<style>\n",
+       ".list-inline {list-style: none; margin:0; padding: 0}\n",
+       ".list-inline>li {display: inline-block}\n",
+       ".list-inline>li:not(:last-child)::after {content: \"\\00b7\"; padding: 0 .5ex}\n",
+       "</style>\n",
+       "<ol class=list-inline><li>'Addressing joint press meet with UK PM @BorisJohnson. https://t.co/GXPBjQN3CZ'</li><li>'#EarthDay is about expressing gratitude to Mother Earth for her kindness and reiterating our commitment to care for… https://t.co/To6WH3QVRU'</li><li>'Wonderful to see you, my friend PM @BorisJohnson in India on a long-awaited visit. Look forward to our discussions… https://t.co/L9FppOuekg'</li><li>'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ https://t.co/a7OzHcZKEE'</li><li>'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… https://t.co/Sr3fU58ui7'</li><li>'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… https://t.co/wggOcE5fep'</li></ol>\n"
+      ],
+      "text/latex": [
+       "\\begin{enumerate*}\n",
+       "\\item 'Addressing joint press meet with UK PM @BorisJohnson. https://t.co/GXPBjQN3CZ'\n",
+       "\\item '\\#EarthDay is about expressing gratitude to Mother Earth for her kindness and reiterating our commitment to care for… https://t.co/To6WH3QVRU'\n",
+       "\\item 'Wonderful to see you, my friend PM @BorisJohnson in India on a long-awaited visit. Look forward to our discussions… https://t.co/L9FppOuekg'\n",
+       "\\item 'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\textbackslash{}n\\textbackslash{}nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\textbackslash{}nਜੈ ਜੈ ਕਾਰ https://t.co/a7OzHcZKEE'\n",
+       "\\item 'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… https://t.co/Sr3fU58ui7'\n",
+       "\\item 'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… https://t.co/wggOcE5fep'\n",
+       "\\end{enumerate*}\n"
+      ],
+      "text/markdown": [
+       "1. 'Addressing joint press meet with UK PM @BorisJohnson. https://t.co/GXPBjQN3CZ'\n",
+       "2. '#EarthDay is about expressing gratitude to Mother Earth for her kindness and reiterating our commitment to care for… https://t.co/To6WH3QVRU'\n",
+       "3. 'Wonderful to see you, my friend PM @BorisJohnson in India on a long-awaited visit. Look forward to our discussions… https://t.co/L9FppOuekg'\n",
+       "4. 'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ https://t.co/a7OzHcZKEE'\n",
+       "5. 'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… https://t.co/Sr3fU58ui7'\n",
+       "6. 'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… https://t.co/wggOcE5fep'\n",
+       "\n",
+       "\n"
+      ],
+      "text/plain": [
+       "[1] \"Addressing joint press meet with UK PM @BorisJohnson. https://t.co/GXPBjQN3CZ\"                                                               \n",
+       "[2] \"#EarthDay is about expressing gratitude to Mother Earth for her kindness and reiterating our commitment to care for… https://t.co/To6WH3QVRU\"\n",
+       "[3] \"Wonderful to see you, my friend PM @BorisJohnson in India on a long-awaited visit. Look forward to our discussions… https://t.co/L9FppOuekg\" \n",
+       "[4] \"ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ https://t.co/a7OzHcZKEE\"                                                                             \n",
+       "[5] \"श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… https://t.co/Sr3fU58ui7\"                  \n",
+       "[6] \"इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… https://t.co/wggOcE5fep\"                                "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "head(tweets.df$text)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 121,
+   "id": "3fea3ffe",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tweets.df2 <- gsub(\"http.*\",\"\",tweets.df$text)\n",
+    "\n",
+    "tweets.df2 <- gsub(\"https.*\",\"\",tweets.df2)\n",
+    "\n",
+    "tweets.df2 <- gsub(\"#.*\",\"\",tweets.df2)\n",
+    "\n",
+    "tweets.df2 <- gsub(\"@.*\",\"\",tweets.df2)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 122,
+   "id": "019f3bb4",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<style>\n",
+       ".list-inline {list-style: none; margin:0; padding: 0}\n",
+       ".list-inline>li {display: inline-block}\n",
+       ".list-inline>li:not(:last-child)::after {content: \"\\00b7\"; padding: 0 .5ex}\n",
+       "</style>\n",
+       "<ol class=list-inline><li>'Addressing joint press meet with UK PM '</li><li>''</li><li>'Wonderful to see you, my friend PM '</li><li>'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ '</li><li>'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… '</li><li>'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… '</li></ol>\n"
+      ],
+      "text/latex": [
+       "\\begin{enumerate*}\n",
+       "\\item 'Addressing joint press meet with UK PM '\n",
+       "\\item ''\n",
+       "\\item 'Wonderful to see you, my friend PM '\n",
+       "\\item 'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\textbackslash{}n\\textbackslash{}nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\textbackslash{}nਜੈ ਜੈ ਕਾਰ '\n",
+       "\\item 'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… '\n",
+       "\\item 'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… '\n",
+       "\\end{enumerate*}\n"
+      ],
+      "text/markdown": [
+       "1. 'Addressing joint press meet with UK PM '\n",
+       "2. ''\n",
+       "3. 'Wonderful to see you, my friend PM '\n",
+       "4. 'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ '\n",
+       "5. 'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… '\n",
+       "6. 'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… '\n",
+       "\n",
+       "\n"
+      ],
+      "text/plain": [
+       "[1] \"Addressing joint press meet with UK PM \"                                                            \n",
+       "[2] \"\"                                                                                                   \n",
+       "[3] \"Wonderful to see you, my friend PM \"                                                                \n",
+       "[4] \"ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ \"                                                           \n",
+       "[5] \"श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… \"\n",
+       "[6] \"इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… \"              "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "head(tweets.df2)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 123,
+   "id": "93b4c015",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A data.frame: 6 × 11</caption>\n",
+       "<thead>\n",
+       "\t<tr><th></th><th scope=col>tweets.df2</th><th scope=col>anger</th><th scope=col>anticipation</th><th scope=col>disgust</th><th scope=col>fear</th><th scope=col>joy</th><th scope=col>sadness</th><th scope=col>surprise</th><th scope=col>trust</th><th scope=col>negative</th><th scope=col>positive</th></tr>\n",
+       "\t<tr><th></th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "\t<tr><th scope=row>1</th><td>Addressing joint press meet with UK PM                                                             </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "\t<tr><th scope=row>2</th><td>                                                                                                   </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "\t<tr><th scope=row>3</th><td>Wonderful to see you, my friend PM                                                                 </td><td>0</td><td>0</td><td>0</td><td>0</td><td>2</td><td>0</td><td>1</td><td>2</td><td>0</td><td>2</td></tr>\n",
+       "\t<tr><th scope=row>4</th><td>ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ                                                            </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "\t<tr><th scope=row>5</th><td>श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "\t<tr><th scope=row>6</th><td>इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है…               </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A data.frame: 6 × 11\n",
+       "\\begin{tabular}{r|lllllllllll}\n",
+       "  & tweets.df2 & anger & anticipation & disgust & fear & joy & sadness & surprise & trust & negative & positive\\\\\n",
+       "  & <chr> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl>\\\\\n",
+       "\\hline\n",
+       "\t1 & Addressing joint press meet with UK PM                                                              & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\t2 &                                                                                                     & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\t3 & Wonderful to see you, my friend PM                                                                  & 0 & 0 & 0 & 0 & 2 & 0 & 1 & 2 & 0 & 2\\\\\n",
+       "\t4 & ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ                                                             & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\t5 & श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी…  & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\t6 & इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है…                & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A data.frame: 6 × 11\n",
+       "\n",
+       "| <!--/--> | tweets.df2 &lt;chr&gt; | anger &lt;dbl&gt; | anticipation &lt;dbl&gt; | disgust &lt;dbl&gt; | fear &lt;dbl&gt; | joy &lt;dbl&gt; | sadness &lt;dbl&gt; | surprise &lt;dbl&gt; | trust &lt;dbl&gt; | negative &lt;dbl&gt; | positive &lt;dbl&gt; |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "| 1 | Addressing joint press meet with UK PM                                                              | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "| 2 | <!----> | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "| 3 | Wonderful to see you, my friend PM                                                                  | 0 | 0 | 0 | 0 | 2 | 0 | 1 | 2 | 0 | 2 |\n",
+       "| 4 | ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ                                                             | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "| 5 | श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी…  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "| 6 | इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है…                | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "\n"
+      ],
+      "text/plain": [
+       "  tweets.df2                                                                                         \n",
+       "1 Addressing joint press meet with UK PM                                                             \n",
+       "2                                                                                                    \n",
+       "3 Wonderful to see you, my friend PM                                                                 \n",
+       "4 ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ                                                            \n",
+       "5 श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… \n",
+       "6 इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है…               \n",
+       "  anger anticipation disgust fear joy sadness surprise trust negative positive\n",
+       "1 0     0            0       0    0   0       0        0     0        0       \n",
+       "2 0     0            0       0    0   0       0        0     0        0       \n",
+       "3 0     0            0       0    2   0       1        2     0        2       \n",
+       "4 0     0            0       0    0   0       0        0     0        0       \n",
+       "5 0     0            0       0    0   0       0        0     0        0       \n",
+       "6 0     0            0       0    0   0       0        0     0        0       "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "word.df <- as.vector(tweets.df2)\n",
+    " \n",
+    "emotion.df <- get_nrc_sentiment(word.df)\n",
+    " \n",
+    "emotion.df2 <- cbind(tweets.df2, emotion.df) \n",
+    " \n",
+    "head(emotion.df2)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 124,
+   "id": "ab459aa4",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table class=\"dataframe\">\n",
+       "<caption>A data.frame: 6 × 11</caption>\n",
+       "<thead>\n",
+       "\t<tr><th></th><th scope=col>tweets.df2</th><th scope=col>anger</th><th scope=col>anticipation</th><th scope=col>disgust</th><th scope=col>fear</th><th scope=col>joy</th><th scope=col>sadness</th><th scope=col>surprise</th><th scope=col>trust</th><th scope=col>negative</th><th scope=col>positive</th></tr>\n",
+       "\t<tr><th></th><th scope=col>&lt;chr&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th><th scope=col>&lt;dbl&gt;</th></tr>\n",
+       "</thead>\n",
+       "<tbody>\n",
+       "\t<tr><th scope=row>1</th><td>Addressing joint press meet with UK PM                                                             </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "\t<tr><th scope=row>2</th><td>                                                                                                   </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "\t<tr><th scope=row>3</th><td>Wonderful to see you, my friend PM                                                                 </td><td>0</td><td>0</td><td>0</td><td>0</td><td>2</td><td>0</td><td>1</td><td>2</td><td>0</td><td>2</td></tr>\n",
+       "\t<tr><th scope=row>4</th><td>ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ                                                            </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "\t<tr><th scope=row>5</th><td>श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "\t<tr><th scope=row>6</th><td>इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है…               </td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>\n",
+       "</tbody>\n",
+       "</table>\n"
+      ],
+      "text/latex": [
+       "A data.frame: 6 × 11\n",
+       "\\begin{tabular}{r|lllllllllll}\n",
+       "  & tweets.df2 & anger & anticipation & disgust & fear & joy & sadness & surprise & trust & negative & positive\\\\\n",
+       "  & <chr> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl> & <dbl>\\\\\n",
+       "\\hline\n",
+       "\t1 & Addressing joint press meet with UK PM                                                              & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\t2 &                                                                                                     & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\t3 & Wonderful to see you, my friend PM                                                                  & 0 & 0 & 0 & 0 & 2 & 0 & 1 & 2 & 0 & 2\\\\\n",
+       "\t4 & ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ                                                             & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\t5 & श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी…  & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\t6 & इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है…                & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\\\n",
+       "\\end{tabular}\n"
+      ],
+      "text/markdown": [
+       "\n",
+       "A data.frame: 6 × 11\n",
+       "\n",
+       "| <!--/--> | tweets.df2 &lt;chr&gt; | anger &lt;dbl&gt; | anticipation &lt;dbl&gt; | disgust &lt;dbl&gt; | fear &lt;dbl&gt; | joy &lt;dbl&gt; | sadness &lt;dbl&gt; | surprise &lt;dbl&gt; | trust &lt;dbl&gt; | negative &lt;dbl&gt; | positive &lt;dbl&gt; |\n",
+       "|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+       "| 1 | Addressing joint press meet with UK PM                                                              | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "| 2 | <!----> | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "| 3 | Wonderful to see you, my friend PM                                                                  | 0 | 0 | 0 | 0 | 2 | 0 | 1 | 2 | 0 | 2 |\n",
+       "| 4 | ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\n",
+       "\n",
+       "ਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \n",
+       "ਜੈ ਜੈ ਕਾਰ                                                             | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "| 5 | श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी…  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "| 6 | इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है…                | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |\n",
+       "\n"
+      ],
+      "text/plain": [
+       "  tweets.df2                                                                                         \n",
+       "1 Addressing joint press meet with UK PM                                                             \n",
+       "2                                                                                                    \n",
+       "3 Wonderful to see you, my friend PM                                                                 \n",
+       "4 ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ                                                            \n",
+       "5 श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… \n",
+       "6 इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है…               \n",
+       "  anger anticipation disgust fear joy sadness surprise trust negative positive\n",
+       "1 0     0            0       0    0   0       0        0     0        0       \n",
+       "2 0     0            0       0    0   0       0        0     0        0       \n",
+       "3 0     0            0       0    2   0       1        2     0        2       \n",
+       "4 0     0            0       0    0   0       0        0     0        0       \n",
+       "5 0     0            0       0    0   0       0        0     0        0       \n",
+       "6 0     0            0       0    0   0       0        0     0        0       "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "head(emotion.df2)\n",
+    "#tweets.df2 anger anticipation disgust"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 125,
+   "id": "b903d8f2",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "'Congratulations to Falguni Shah on winning the award for the Best Children’s Music Album at the Grammys. Wishing he… '"
+      ],
+      "text/latex": [
+       "'Congratulations to Falguni Shah on winning the award for the Best Children’s Music Album at the Grammys. Wishing he… '"
+      ],
+      "text/markdown": [
+       "'Congratulations to Falguni Shah on winning the award for the Best Children’s Music Album at the Grammys. Wishing he… '"
+      ],
+      "text/plain": [
+       "[1] \"Congratulations to Falguni Shah on winning the award for the Best Children’s Music Album at the Grammys. Wishing he… \""
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "sent.value <- get_sentiment(word.df)\n",
+    "\n",
+    "most.positive <- word.df[sent.value == max(sent.value)]\n",
+    "\n",
+    "most.positive"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 126,
+   "id": "08f2ba85",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<style>\n",
+       ".list-inline {list-style: none; margin:0; padding: 0}\n",
+       ".list-inline>li {display: inline-block}\n",
+       ".list-inline>li:not(:last-child)::after {content: \"\\00b7\"; padding: 0 .5ex}\n",
+       "</style>\n",
+       "<ol class=list-inline><li>'Anguished by the passing away of Shri Prafulla Kar Ji. He will be remembered for his pioneering contribution to Odi… '</li><li>'In the last 8 years the Government of India has focussed on port-led development which includes expanding port capa… '</li></ol>\n"
+      ],
+      "text/latex": [
+       "\\begin{enumerate*}\n",
+       "\\item 'Anguished by the passing away of Shri Prafulla Kar Ji. He will be remembered for his pioneering contribution to Odi… '\n",
+       "\\item 'In the last 8 years the Government of India has focussed on port-led development which includes expanding port capa… '\n",
+       "\\end{enumerate*}\n"
+      ],
+      "text/markdown": [
+       "1. 'Anguished by the passing away of Shri Prafulla Kar Ji. He will be remembered for his pioneering contribution to Odi… '\n",
+       "2. 'In the last 8 years the Government of India has focussed on port-led development which includes expanding port capa… '\n",
+       "\n",
+       "\n"
+      ],
+      "text/plain": [
+       "[1] \"Anguished by the passing away of Shri Prafulla Kar Ji. He will be remembered for his pioneering contribution to Odi… \"\n",
+       "[2] \"In the last 8 years the Government of India has focussed on port-led development which includes expanding port capa… \""
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/html": [
+       "'Congratulations to Falguni Shah on winning the award for the Best Children’s Music Album at the Grammys. Wishing he… '"
+      ],
+      "text/latex": [
+       "'Congratulations to Falguni Shah on winning the award for the Best Children’s Music Album at the Grammys. Wishing he… '"
+      ],
+      "text/markdown": [
+       "'Congratulations to Falguni Shah on winning the award for the Best Children’s Music Album at the Grammys. Wishing he… '"
+      ],
+      "text/plain": [
+       "[1] \"Congratulations to Falguni Shah on winning the award for the Best Children’s Music Album at the Grammys. Wishing he… \""
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "most.negative <- word.df[sent.value <= min(sent.value)] \n",
+    "most.negative \n",
+    "most.positive"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 106,
+   "id": "ff07cdf7",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<style>\n",
+       ".list-inline {list-style: none; margin:0; padding: 0}\n",
+       ".list-inline>li {display: inline-block}\n",
+       ".list-inline>li:not(:last-child)::after {content: \"\\00b7\"; padding: 0 .5ex}\n",
+       "</style>\n",
+       "<ol class=list-inline><li>0</li><li>0</li><li>1.55</li><li>0</li><li>0</li><li>0</li><li>0</li><li>1.85</li><li>0</li><li>0.6</li><li>0</li><li>0</li><li>1.1</li><li>2.5</li><li>1.5</li><li>1.1</li><li>1.3</li><li>0.75</li><li>0</li><li>1.6</li><li>0.5</li><li>0</li><li>0</li><li>0</li><li>0</li><li>2.95</li><li>-0.1</li><li>0.8</li><li>2.8</li><li>0.75</li><li>1.25</li><li>1.8</li><li>1.15</li><li>0</li><li>1.55</li><li>0.6</li><li>1</li><li>0.75</li><li>0</li><li>0</li><li>0.5</li><li>0</li><li>0.6</li><li>0</li><li>0</li><li>0</li><li>0</li><li>0</li><li>0.5</li><li>0</li><li>0.4</li><li>0.5</li><li>0</li><li>0</li><li>0</li><li>0</li><li>1</li><li>1.5</li><li>0</li><li>0.75</li><li>1</li><li>0</li><li>0.5</li><li>0</li><li>0</li><li>0.15</li><li>0</li><li>0</li><li>-0.5</li><li>1.15</li><li>1.15</li><li>0.75</li><li>1</li><li>0.65</li><li>0.6</li><li>0.75</li><li>3.15</li><li>2.75</li><li>1.5</li><li>0</li><li>1.25</li><li>0</li><li>0.8</li><li>0</li><li>2.3</li><li>-0.1</li><li>0</li><li>2.3</li><li>2.7</li><li>0.5</li><li>1.3</li><li>1.25</li><li>0.4</li><li>0.75</li><li>1.25</li><li>0</li><li>0</li><li>0</li><li>0</li><li>1</li><li>-0.4</li><li>0</li><li>1.3</li><li>0.6</li><li>0</li><li>0</li><li>1.25</li><li>1</li><li>3.05</li><li>0.5</li><li>2.1</li><li>0.15</li><li>0</li><li>1.75</li><li>1.1</li><li>1.75</li><li>0</li><li>1</li><li>0.75</li><li>0</li><li>0</li><li>1</li><li>0.85</li><li>0</li><li>0</li><li>0.25</li><li>0</li><li>0</li><li>3</li><li>1.15</li><li>0</li><li>1.3</li><li>0</li><li>0</li><li>0.65</li><li>0</li><li>0</li><li>0.75</li><li>2.4</li><li>0</li><li>0</li><li>0</li><li>0</li><li>0</li><li>0.75</li><li>0.8</li><li>2.15</li><li>1.55</li><li>2.25</li><li>0.75</li><li>2.45</li><li>2.3</li><li>1.15</li><li>0</li><li>0</li><li>0</li><li>0.75</li><li>1.5</li><li>0.8</li><li>1.2</li><li>1.5</li><li>0.75</li><li>0</li><li>1.1</li><li>0.6</li><li>-0.5</li><li>1.6</li><li>4.15</li><li>0</li><li>0.75</li><li>3.3</li><li>1.6</li><li>0.75</li><li>1.1</li><li>0.1</li><li>0.5</li><li>0</li><li>0</li><li>0</li><li>0</li><li>0</li><li>0.25</li><li>1.4</li><li>0.5</li><li>1.3</li><li>0</li><li>2.1</li><li>0</li><li>0</li><li>1.7</li><li>1.25</li><li>0.6</li><li>0.15</li><li>0.8</li><li>0</li><li>0</li><li>0.5</li><li>1.5</li><li>0.8</li></ol>\n"
+      ],
+      "text/latex": [
+       "\\begin{enumerate*}\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 1.55\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 1.85\n",
+       "\\item 0\n",
+       "\\item 0.6\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 1.1\n",
+       "\\item 2.5\n",
+       "\\item 1.5\n",
+       "\\item 1.1\n",
+       "\\item 1.3\n",
+       "\\item 0.75\n",
+       "\\item 0\n",
+       "\\item 1.6\n",
+       "\\item 0.5\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 2.95\n",
+       "\\item -0.1\n",
+       "\\item 0.8\n",
+       "\\item 2.8\n",
+       "\\item 0.75\n",
+       "\\item 1.25\n",
+       "\\item 1.8\n",
+       "\\item 1.15\n",
+       "\\item 0\n",
+       "\\item 1.55\n",
+       "\\item 0.6\n",
+       "\\item 1\n",
+       "\\item 0.75\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.5\n",
+       "\\item 0\n",
+       "\\item 0.6\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.5\n",
+       "\\item 0\n",
+       "\\item 0.4\n",
+       "\\item 0.5\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 1\n",
+       "\\item 1.5\n",
+       "\\item 0\n",
+       "\\item 0.75\n",
+       "\\item 1\n",
+       "\\item 0\n",
+       "\\item 0.5\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.15\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item -0.5\n",
+       "\\item 1.15\n",
+       "\\item 1.15\n",
+       "\\item 0.75\n",
+       "\\item 1\n",
+       "\\item 0.65\n",
+       "\\item 0.6\n",
+       "\\item 0.75\n",
+       "\\item 3.15\n",
+       "\\item 2.75\n",
+       "\\item 1.5\n",
+       "\\item 0\n",
+       "\\item 1.25\n",
+       "\\item 0\n",
+       "\\item 0.8\n",
+       "\\item 0\n",
+       "\\item 2.3\n",
+       "\\item -0.1\n",
+       "\\item 0\n",
+       "\\item 2.3\n",
+       "\\item 2.7\n",
+       "\\item 0.5\n",
+       "\\item 1.3\n",
+       "\\item 1.25\n",
+       "\\item 0.4\n",
+       "\\item 0.75\n",
+       "\\item 1.25\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 1\n",
+       "\\item -0.4\n",
+       "\\item 0\n",
+       "\\item 1.3\n",
+       "\\item 0.6\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 1.25\n",
+       "\\item 1\n",
+       "\\item 3.05\n",
+       "\\item 0.5\n",
+       "\\item 2.1\n",
+       "\\item 0.15\n",
+       "\\item 0\n",
+       "\\item 1.75\n",
+       "\\item 1.1\n",
+       "\\item 1.75\n",
+       "\\item 0\n",
+       "\\item 1\n",
+       "\\item 0.75\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 1\n",
+       "\\item 0.85\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.25\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 3\n",
+       "\\item 1.15\n",
+       "\\item 0\n",
+       "\\item 1.3\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.65\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.75\n",
+       "\\item 2.4\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.75\n",
+       "\\item 0.8\n",
+       "\\item 2.15\n",
+       "\\item 1.55\n",
+       "\\item 2.25\n",
+       "\\item 0.75\n",
+       "\\item 2.45\n",
+       "\\item 2.3\n",
+       "\\item 1.15\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.75\n",
+       "\\item 1.5\n",
+       "\\item 0.8\n",
+       "\\item 1.2\n",
+       "\\item 1.5\n",
+       "\\item 0.75\n",
+       "\\item 0\n",
+       "\\item 1.1\n",
+       "\\item 0.6\n",
+       "\\item -0.5\n",
+       "\\item 1.6\n",
+       "\\item 4.15\n",
+       "\\item 0\n",
+       "\\item 0.75\n",
+       "\\item 3.3\n",
+       "\\item 1.6\n",
+       "\\item 0.75\n",
+       "\\item 1.1\n",
+       "\\item 0.1\n",
+       "\\item 0.5\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.25\n",
+       "\\item 1.4\n",
+       "\\item 0.5\n",
+       "\\item 1.3\n",
+       "\\item 0\n",
+       "\\item 2.1\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 1.7\n",
+       "\\item 1.25\n",
+       "\\item 0.6\n",
+       "\\item 0.15\n",
+       "\\item 0.8\n",
+       "\\item 0\n",
+       "\\item 0\n",
+       "\\item 0.5\n",
+       "\\item 1.5\n",
+       "\\item 0.8\n",
+       "\\end{enumerate*}\n"
+      ],
+      "text/markdown": [
+       "1. 0\n",
+       "2. 0\n",
+       "3. 1.55\n",
+       "4. 0\n",
+       "5. 0\n",
+       "6. 0\n",
+       "7. 0\n",
+       "8. 1.85\n",
+       "9. 0\n",
+       "10. 0.6\n",
+       "11. 0\n",
+       "12. 0\n",
+       "13. 1.1\n",
+       "14. 2.5\n",
+       "15. 1.5\n",
+       "16. 1.1\n",
+       "17. 1.3\n",
+       "18. 0.75\n",
+       "19. 0\n",
+       "20. 1.6\n",
+       "21. 0.5\n",
+       "22. 0\n",
+       "23. 0\n",
+       "24. 0\n",
+       "25. 0\n",
+       "26. 2.95\n",
+       "27. -0.1\n",
+       "28. 0.8\n",
+       "29. 2.8\n",
+       "30. 0.75\n",
+       "31. 1.25\n",
+       "32. 1.8\n",
+       "33. 1.15\n",
+       "34. 0\n",
+       "35. 1.55\n",
+       "36. 0.6\n",
+       "37. 1\n",
+       "38. 0.75\n",
+       "39. 0\n",
+       "40. 0\n",
+       "41. 0.5\n",
+       "42. 0\n",
+       "43. 0.6\n",
+       "44. 0\n",
+       "45. 0\n",
+       "46. 0\n",
+       "47. 0\n",
+       "48. 0\n",
+       "49. 0.5\n",
+       "50. 0\n",
+       "51. 0.4\n",
+       "52. 0.5\n",
+       "53. 0\n",
+       "54. 0\n",
+       "55. 0\n",
+       "56. 0\n",
+       "57. 1\n",
+       "58. 1.5\n",
+       "59. 0\n",
+       "60. 0.75\n",
+       "61. 1\n",
+       "62. 0\n",
+       "63. 0.5\n",
+       "64. 0\n",
+       "65. 0\n",
+       "66. 0.15\n",
+       "67. 0\n",
+       "68. 0\n",
+       "69. -0.5\n",
+       "70. 1.15\n",
+       "71. 1.15\n",
+       "72. 0.75\n",
+       "73. 1\n",
+       "74. 0.65\n",
+       "75. 0.6\n",
+       "76. 0.75\n",
+       "77. 3.15\n",
+       "78. 2.75\n",
+       "79. 1.5\n",
+       "80. 0\n",
+       "81. 1.25\n",
+       "82. 0\n",
+       "83. 0.8\n",
+       "84. 0\n",
+       "85. 2.3\n",
+       "86. -0.1\n",
+       "87. 0\n",
+       "88. 2.3\n",
+       "89. 2.7\n",
+       "90. 0.5\n",
+       "91. 1.3\n",
+       "92. 1.25\n",
+       "93. 0.4\n",
+       "94. 0.75\n",
+       "95. 1.25\n",
+       "96. 0\n",
+       "97. 0\n",
+       "98. 0\n",
+       "99. 0\n",
+       "100. 1\n",
+       "101. -0.4\n",
+       "102. 0\n",
+       "103. 1.3\n",
+       "104. 0.6\n",
+       "105. 0\n",
+       "106. 0\n",
+       "107. 1.25\n",
+       "108. 1\n",
+       "109. 3.05\n",
+       "110. 0.5\n",
+       "111. 2.1\n",
+       "112. 0.15\n",
+       "113. 0\n",
+       "114. 1.75\n",
+       "115. 1.1\n",
+       "116. 1.75\n",
+       "117. 0\n",
+       "118. 1\n",
+       "119. 0.75\n",
+       "120. 0\n",
+       "121. 0\n",
+       "122. 1\n",
+       "123. 0.85\n",
+       "124. 0\n",
+       "125. 0\n",
+       "126. 0.25\n",
+       "127. 0\n",
+       "128. 0\n",
+       "129. 3\n",
+       "130. 1.15\n",
+       "131. 0\n",
+       "132. 1.3\n",
+       "133. 0\n",
+       "134. 0\n",
+       "135. 0.65\n",
+       "136. 0\n",
+       "137. 0\n",
+       "138. 0.75\n",
+       "139. 2.4\n",
+       "140. 0\n",
+       "141. 0\n",
+       "142. 0\n",
+       "143. 0\n",
+       "144. 0\n",
+       "145. 0.75\n",
+       "146. 0.8\n",
+       "147. 2.15\n",
+       "148. 1.55\n",
+       "149. 2.25\n",
+       "150. 0.75\n",
+       "151. 2.45\n",
+       "152. 2.3\n",
+       "153. 1.15\n",
+       "154. 0\n",
+       "155. 0\n",
+       "156. 0\n",
+       "157. 0.75\n",
+       "158. 1.5\n",
+       "159. 0.8\n",
+       "160. 1.2\n",
+       "161. 1.5\n",
+       "162. 0.75\n",
+       "163. 0\n",
+       "164. 1.1\n",
+       "165. 0.6\n",
+       "166. -0.5\n",
+       "167. 1.6\n",
+       "168. 4.15\n",
+       "169. 0\n",
+       "170. 0.75\n",
+       "171. 3.3\n",
+       "172. 1.6\n",
+       "173. 0.75\n",
+       "174. 1.1\n",
+       "175. 0.1\n",
+       "176. 0.5\n",
+       "177. 0\n",
+       "178. 0\n",
+       "179. 0\n",
+       "180. 0\n",
+       "181. 0\n",
+       "182. 0.25\n",
+       "183. 1.4\n",
+       "184. 0.5\n",
+       "185. 1.3\n",
+       "186. 0\n",
+       "187. 2.1\n",
+       "188. 0\n",
+       "189. 0\n",
+       "190. 1.7\n",
+       "191. 1.25\n",
+       "192. 0.6\n",
+       "193. 0.15\n",
+       "194. 0.8\n",
+       "195. 0\n",
+       "196. 0\n",
+       "197. 0.5\n",
+       "198. 1.5\n",
+       "199. 0.8\n",
+       "\n",
+       "\n"
+      ],
+      "text/plain": [
+       "  [1]  0.00  0.00  1.55  0.00  0.00  0.00  0.00  1.85  0.00  0.60  0.00  0.00\n",
+       " [13]  1.10  2.50  1.50  1.10  1.30  0.75  0.00  1.60  0.50  0.00  0.00  0.00\n",
+       " [25]  0.00  2.95 -0.10  0.80  2.80  0.75  1.25  1.80  1.15  0.00  1.55  0.60\n",
+       " [37]  1.00  0.75  0.00  0.00  0.50  0.00  0.60  0.00  0.00  0.00  0.00  0.00\n",
+       " [49]  0.50  0.00  0.40  0.50  0.00  0.00  0.00  0.00  1.00  1.50  0.00  0.75\n",
+       " [61]  1.00  0.00  0.50  0.00  0.00  0.15  0.00  0.00 -0.50  1.15  1.15  0.75\n",
+       " [73]  1.00  0.65  0.60  0.75  3.15  2.75  1.50  0.00  1.25  0.00  0.80  0.00\n",
+       " [85]  2.30 -0.10  0.00  2.30  2.70  0.50  1.30  1.25  0.40  0.75  1.25  0.00\n",
+       " [97]  0.00  0.00  0.00  1.00 -0.40  0.00  1.30  0.60  0.00  0.00  1.25  1.00\n",
+       "[109]  3.05  0.50  2.10  0.15  0.00  1.75  1.10  1.75  0.00  1.00  0.75  0.00\n",
+       "[121]  0.00  1.00  0.85  0.00  0.00  0.25  0.00  0.00  3.00  1.15  0.00  1.30\n",
+       "[133]  0.00  0.00  0.65  0.00  0.00  0.75  2.40  0.00  0.00  0.00  0.00  0.00\n",
+       "[145]  0.75  0.80  2.15  1.55  2.25  0.75  2.45  2.30  1.15  0.00  0.00  0.00\n",
+       "[157]  0.75  1.50  0.80  1.20  1.50  0.75  0.00  1.10  0.60 -0.50  1.60  4.15\n",
+       "[169]  0.00  0.75  3.30  1.60  0.75  1.10  0.10  0.50  0.00  0.00  0.00  0.00\n",
+       "[181]  0.00  0.25  1.40  0.50  1.30  0.00  2.10  0.00  0.00  1.70  1.25  0.60\n",
+       "[193]  0.15  0.80  0.00  0.00  0.50  1.50  0.80"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "sent.value"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 107,
+   "id": "e2aa0f38",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<style>\n",
+       ".list-inline {list-style: none; margin:0; padding: 0}\n",
+       ".list-inline>li {display: inline-block}\n",
+       ".list-inline>li:not(:last-child)::after {content: \"\\00b7\"; padding: 0 .5ex}\n",
+       "</style>\n",
+       "<ol class=list-inline><li>'Wonderful to see you, my friend PM '</li><li>'Blessed to join the 400th Parkash Purab celebrations of Sri Guru Teg Bahadur Ji at the Red Fort '</li><li>'We bow to Sri Guru Tegh Bahadur Ji on his Parkash Purab. '</li><li>'The eyes of the world are on India and this makes our task of furthering good governance even more essential. '</li><li>'Being a vibrant democracy, we have to focus on these three things:\\n\\nBring a positive change in the lives of the com… '</li><li>'Here is how our officers can strengthen the Azadi Ka Amrit Mahotsav and add greater strength to India’s development… '</li></ol>\n"
+      ],
+      "text/latex": [
+       "\\begin{enumerate*}\n",
+       "\\item 'Wonderful to see you, my friend PM '\n",
+       "\\item 'Blessed to join the 400th Parkash Purab celebrations of Sri Guru Teg Bahadur Ji at the Red Fort '\n",
+       "\\item 'We bow to Sri Guru Tegh Bahadur Ji on his Parkash Purab. '\n",
+       "\\item 'The eyes of the world are on India and this makes our task of furthering good governance even more essential. '\n",
+       "\\item 'Being a vibrant democracy, we have to focus on these three things:\\textbackslash{}n\\textbackslash{}nBring a positive change in the lives of the com… '\n",
+       "\\item 'Here is how our officers can strengthen the Azadi Ka Amrit Mahotsav and add greater strength to India’s development… '\n",
+       "\\end{enumerate*}\n"
+      ],
+      "text/markdown": [
+       "1. 'Wonderful to see you, my friend PM '\n",
+       "2. 'Blessed to join the 400th Parkash Purab celebrations of Sri Guru Teg Bahadur Ji at the Red Fort '\n",
+       "3. 'We bow to Sri Guru Tegh Bahadur Ji on his Parkash Purab. '\n",
+       "4. 'The eyes of the world are on India and this makes our task of furthering good governance even more essential. '\n",
+       "5. 'Being a vibrant democracy, we have to focus on these three things:\\n\\nBring a positive change in the lives of the com… '\n",
+       "6. 'Here is how our officers can strengthen the Azadi Ka Amrit Mahotsav and add greater strength to India’s development… '\n",
+       "\n",
+       "\n"
+      ],
+      "text/plain": [
+       "[1] \"Wonderful to see you, my friend PM \"                                                                                    \n",
+       "[2] \"Blessed to join the 400th Parkash Purab celebrations of Sri Guru Teg Bahadur Ji at the Red Fort \"                       \n",
+       "[3] \"We bow to Sri Guru Tegh Bahadur Ji on his Parkash Purab. \"                                                              \n",
+       "[4] \"The eyes of the world are on India and this makes our task of furthering good governance even more essential. \"         \n",
+       "[5] \"Being a vibrant democracy, we have to focus on these three things:\\n\\nBring a positive change in the lives of the com… \"\n",
+       "[6] \"Here is how our officers can strengthen the Azadi Ka Amrit Mahotsav and add greater strength to India’s development… \"  "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "positive.tweets <- word.df[sent.value > 0]\n",
+    "head(positive.tweets)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 127,
+   "id": "7c1a1b36",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<style>\n",
+       ".list-inline {list-style: none; margin:0; padding: 0}\n",
+       ".list-inline>li {display: inline-block}\n",
+       ".list-inline>li:not(:last-child)::after {content: \"\\00b7\"; padding: 0 .5ex}\n",
+       "</style>\n",
+       "<ol class=list-inline><li>'Addressing a programme at launch of development initiatives in Dahod, Gujarat. '</li><li>'Anguished by the passing away of Shri Prafulla Kar Ji. He will be remembered for his pioneering contribution to Odi… '</li><li>'Spoke with General Secretary of Communist Party of Vietnam H. E. Nguyen Phu Trong today. We exchanged views on a ra… '</li><li>'From the ramparts of the Red Fort I have said that in the making of our nation, every Government, every Prime Minis… '</li><li>'In the last 8 years the Government of India has focussed on port-led development which includes expanding port capa… '</li></ol>\n"
+      ],
+      "text/latex": [
+       "\\begin{enumerate*}\n",
+       "\\item 'Addressing a programme at launch of development initiatives in Dahod, Gujarat. '\n",
+       "\\item 'Anguished by the passing away of Shri Prafulla Kar Ji. He will be remembered for his pioneering contribution to Odi… '\n",
+       "\\item 'Spoke with General Secretary of Communist Party of Vietnam H. E. Nguyen Phu Trong today. We exchanged views on a ra… '\n",
+       "\\item 'From the ramparts of the Red Fort I have said that in the making of our nation, every Government, every Prime Minis… '\n",
+       "\\item 'In the last 8 years the Government of India has focussed on port-led development which includes expanding port capa… '\n",
+       "\\end{enumerate*}\n"
+      ],
+      "text/markdown": [
+       "1. 'Addressing a programme at launch of development initiatives in Dahod, Gujarat. '\n",
+       "2. 'Anguished by the passing away of Shri Prafulla Kar Ji. He will be remembered for his pioneering contribution to Odi… '\n",
+       "3. 'Spoke with General Secretary of Communist Party of Vietnam H. E. Nguyen Phu Trong today. We exchanged views on a ra… '\n",
+       "4. 'From the ramparts of the Red Fort I have said that in the making of our nation, every Government, every Prime Minis… '\n",
+       "5. 'In the last 8 years the Government of India has focussed on port-led development which includes expanding port capa… '\n",
+       "\n",
+       "\n"
+      ],
+      "text/plain": [
+       "[1] \"Addressing a programme at launch of development initiatives in Dahod, Gujarat. \"                                      \n",
+       "[2] \"Anguished by the passing away of Shri Prafulla Kar Ji. He will be remembered for his pioneering contribution to Odi… \"\n",
+       "[3] \"Spoke with General Secretary of Communist Party of Vietnam H. E. Nguyen Phu Trong today. We exchanged views on a ra… \"\n",
+       "[4] \"From the ramparts of the Red Fort I have said that in the making of our nation, every Government, every Prime Minis… \"\n",
+       "[5] \"In the last 8 years the Government of India has focussed on port-led development which includes expanding port capa… \""
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "negative.tweets <- word.df[sent.value < 0] \n",
+    "head(negative.tweets)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 128,
+   "id": "cdec54ac",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<style>\n",
+       ".list-inline {list-style: none; margin:0; padding: 0}\n",
+       ".list-inline>li {display: inline-block}\n",
+       ".list-inline>li:not(:last-child)::after {content: \"\\00b7\"; padding: 0 .5ex}\n",
+       "</style>\n",
+       "<ol class=list-inline><li>'Addressing joint press meet with UK PM '</li><li>''</li><li>'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ '</li><li>'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… '</li><li>'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… '</li><li>'गुरु तेग बहादुर जी के बलिदान ने भारत की अनेक पीढ़ियों को अपनी संस्कृति के मान-सम्मान के लिए जीने और मर-मिट जाने की… '</li></ol>\n"
+      ],
+      "text/latex": [
+       "\\begin{enumerate*}\n",
+       "\\item 'Addressing joint press meet with UK PM '\n",
+       "\\item ''\n",
+       "\\item 'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\textbackslash{}n\\textbackslash{}nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\textbackslash{}nਜੈ ਜੈ ਕਾਰ '\n",
+       "\\item 'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… '\n",
+       "\\item 'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… '\n",
+       "\\item 'गुरु तेग बहादुर जी के बलिदान ने भारत की अनेक पीढ़ियों को अपनी संस्कृति के मान-सम्मान के लिए जीने और मर-मिट जाने की… '\n",
+       "\\end{enumerate*}\n"
+      ],
+      "text/markdown": [
+       "1. 'Addressing joint press meet with UK PM '\n",
+       "2. ''\n",
+       "3. 'ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ '\n",
+       "4. 'श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… '\n",
+       "5. 'इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… '\n",
+       "6. 'गुरु तेग बहादुर जी के बलिदान ने भारत की अनेक पीढ़ियों को अपनी संस्कृति के मान-सम्मान के लिए जीने और मर-मिट जाने की… '\n",
+       "\n",
+       "\n"
+      ],
+      "text/plain": [
+       "[1] \"Addressing joint press meet with UK PM \"                                                            \n",
+       "[2] \"\"                                                                                                   \n",
+       "[3] \"ਅਲੌਕਿਕ ਨਜ਼ਾਰਾ\\n\\nਹੋ ਰਹੀ ਹੈ ਜੀ ਤੇਰੀ \\nਜੈ ਜੈ ਕਾਰ \"                                                           \n",
+       "[4] \"श्री गुरुग्रंथ साहिब जी हमारे लिए आत्मकल्याण के पथप्रदर्शक के साथ-साथ भारत की विविधता और एकता का जीवंत स्वरूप भी… \"\n",
+       "[5] \"इसे मैं अपनी सरकार का सौभाग्य मानता हूं कि गुरुओं की सेवा के लिए इतना कुछ करने का अवसर मिल रहा है… \"              \n",
+       "[6] \"गुरु तेग बहादुर जी के बलिदान ने भारत की अनेक पीढ़ियों को अपनी संस्कृति के मान-सम्मान के लिए जीने और मर-मिट जाने की… \""
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "neutral.tweets <- word.df[sent.value == 0] \n",
+    "head(neutral.tweets)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 129,
+   "id": "a5ba6041",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<style>\n",
+       ".list-inline {list-style: none; margin:0; padding: 0}\n",
+       ".list-inline>li {display: inline-block}\n",
+       ".list-inline>li:not(:last-child)::after {content: \"\\00b7\"; padding: 0 .5ex}\n",
+       "</style>\n",
+       "<ol class=list-inline><li>'Neutral'</li><li>'Neutral'</li><li>'Positive'</li><li>'Neutral'</li><li>'Neutral'</li><li>'Neutral'</li></ol>\n"
+      ],
+      "text/latex": [
+       "\\begin{enumerate*}\n",
+       "\\item 'Neutral'\n",
+       "\\item 'Neutral'\n",
+       "\\item 'Positive'\n",
+       "\\item 'Neutral'\n",
+       "\\item 'Neutral'\n",
+       "\\item 'Neutral'\n",
+       "\\end{enumerate*}\n"
+      ],
+      "text/markdown": [
+       "1. 'Neutral'\n",
+       "2. 'Neutral'\n",
+       "3. 'Positive'\n",
+       "4. 'Neutral'\n",
+       "5. 'Neutral'\n",
+       "6. 'Neutral'\n",
+       "\n",
+       "\n"
+      ],
+      "text/plain": [
+       "[1] \"Neutral\"  \"Neutral\"  \"Positive\" \"Neutral\"  \"Neutral\"  \"Neutral\" "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "category_senti <- ifelse(sent.value < 0, \"Negative\", ifelse(sent.value > 0, \"Positive\", \"Neutral\"))\n",
+    "\n",
+    "head(category_senti)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 137,
+   "id": "40d5bc5d",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "category_senti\n",
+       "Negative  Neutral Positive \n",
+       "       5       78      116 "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "table(category_senti)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "760506d0",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "R",
+   "language": "R",
+   "name": "ir"
+  },
+  "language_info": {
+   "codemirror_mode": "r",
+   "file_extension": ".r",
+   "mimetype": "text/x-r-source",
+   "name": "R",
+   "pygments_lexer": "r",
+   "version": "4.1.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
